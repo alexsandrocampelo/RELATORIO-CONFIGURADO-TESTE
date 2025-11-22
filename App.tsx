@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { InputGroup } from './components/InputGroup';
 import { SignatureModal } from './components/SignatureModal';
@@ -10,9 +10,6 @@ import {
   LayoutDashboard, ChevronRight, Users, BookOpen, Heart, Target, MapPin, Calendar
 } from 'lucide-react';
 
-// Mock Database (In-Memory for Demo)
-const MOCK_DB: SavedReport[] = [];
-
 function App() {
   // App Navigation State
   const [view, setView] = useState<'HOME' | 'FORM' | 'ADMIN_LOGIN' | 'ADMIN_DASHBOARD' | 'REPORT_DETAIL'>('HOME');
@@ -21,8 +18,17 @@ function App() {
   const [data, setData] = useState<ReportData>(INITIAL_REPORT_DATA);
   const [localSignatures, setLocalSignatures] = useState<Signatures>(INITIAL_SIGNATURES); // Only local responsibles
   
-  // Admin/Data State
-  const [savedReports, setSavedReports] = useState<SavedReport[]>(MOCK_DB);
+  // Admin/Data State - Initialize from LocalStorage to persist data on refresh
+  const [savedReports, setSavedReports] = useState<SavedReport[]>(() => {
+    try {
+      const saved = localStorage.getItem('ieadpe_reports_db');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Erro ao carregar dados", e);
+      return [];
+    }
+  });
+
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [activeRole, setActiveRole] = useState<SignatureRole>(SignatureRole.COORDINATOR);
@@ -30,6 +36,13 @@ function App() {
   // Admin Login State
   const [adminPass, setAdminPass] = useState('');
   const [adminError, setAdminError] = useState('');
+
+  // --- Effects ---
+
+  // Save to LocalStorage whenever reports change
+  useEffect(() => {
+    localStorage.setItem('ieadpe_reports_db', JSON.stringify(savedReports));
+  }, [savedReports]);
 
   // --- Actions ---
 
@@ -49,7 +62,7 @@ function App() {
     }
 
     const newReport: SavedReport = {
-        id: Math.random().toString(36).substr(2, 9),
+        id: Math.random().toString(36).substr(2, 9).toUpperCase(),
         data: { ...data },
         signatures: { ...localSignatures }, // Only local signatures initially
         status: 'PENDING',
@@ -57,7 +70,7 @@ function App() {
     };
 
     setSavedReports(prev => [newReport, ...prev]);
-    alert("✅ Relatório enviado com sucesso!\n\nUma cópia dos dados foi direcionada para o sistema na nuvem e notificação enviada para: alexsandroinformacoes@gmail.com\n\nA coordenação já pode visualizar e validar os dados no painel administrativo.");
+    alert(`✅ Relatório enviado com sucesso!\n\nOs dados foram registrados no sistema.\nNotificação de envio simulada para: alexsandroinformacoes@gmail.com`);
     
     // Reset form and go home
     setData(INITIAL_REPORT_DATA);
@@ -164,6 +177,10 @@ function App() {
                 </div>
                 <ChevronRight className="text-gray-500 group-hover:text-yellow-500" />
             </button>
+        </div>
+        
+        <div className="text-slate-500 text-xs absolute bottom-4">
+            v1.2.0 • Dados salvos localmente
         </div>
     </div>
   );
